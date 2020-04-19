@@ -38,7 +38,6 @@ public class TesultsListener extends TestListenerAdapter {
         if (!suite.equals("") && suite != null) {
             pathString = Paths.get(this.files, suite, name).toString();
         }
-        System.out.println(pathString);
         File path = new File(pathString);
         try {
             File[] files = path.listFiles();
