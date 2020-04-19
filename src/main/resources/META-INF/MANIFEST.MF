@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Name: com/tesults/testng
 Specification-Title: TestNG Tesults Plugin
-Specification-Version: 1.0.0
+Specification-Version: 1.0.1
 Specification-Vendor: Tesults
 Implementation-Title: com.tesults.testng
-Implementation-Version: 1.0.0
+Implementation-Version: 1.0.1
 Implementation-Vendor: Tesults
 Class-Path: tesults-testng.jar
