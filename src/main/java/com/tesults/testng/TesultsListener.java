@@ -71,16 +71,16 @@ public class TesultsListener extends TestListenerAdapter {
         if (desc != null) {
             testCase.put("desc", desc);
         }
-        Object[] params = iTestResult.getParameters();
+        /*Object[] params = iTestResult.getParameters();
         if (params != null) {
             if (params.length > 0) {
                 Map<String, String> parameters = new HashMap<String, String>();
                 for (int i = 0; i < params.length; i++) {
-                    parameters.put(i + "", params[i].toString());
+                    parameters.put(String.valueOf(i), params[i].toString());
                 }
-                testCase.put("params", params);
+                testCase.put("params", parameters);
             }
-        }
+        }*/
         List<String> files = filesForCase(suite == null ? "" : suite, name);
         if (files != null) {
             if (files.size() > 0) {
@@ -219,8 +219,11 @@ public class TesultsListener extends TestListenerAdapter {
         results.put("cases", cases);
         data.put("results", results);
 
+
+
         // Upload
         System.out.println("Tesults results uploading...");
+        System.out.println(data);
         Map<String, Object> response = Results.upload(data);
         System.out.println("success: " + response.get("success"));
         System.out.println("message: " + response.get("message"));

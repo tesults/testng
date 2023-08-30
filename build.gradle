@@ -1,9 +1,10 @@
-plugins {
-    id 'java'
-}
-
 group 'com.tesults.testng'
-version '1.0.2'
+version '1.0.3'
+
+apply plugin : "java"
+apply plugin : "java-library"
+apply plugin: "maven-publish"
+apply plugin: "signing"
 
 sourceCompatibility = 1.8
 
@@ -13,57 +14,62 @@ repositories {
 }
 
 dependencies {
-    compile 'org.testng:testng:6.10'
-    compile 'com.tesults:tesults:1.0.2'
+    implementation 'org.testng:testng:6.10'
+    implementation 'com.tesults:tesults:1.0.2'
+    //implementation fileTree(dir: 'temp', includes: ['*.jar'])
 }
 
-jar {
-    manifest {
-        from 'src/main/resources/META-INF/MANIFEST.MF'
-    }
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'tesults-testng'
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name = 'tesults-testng'
+                description = 'Tesults TestNG Listener'
+                url = 'https://www.tesults.com'
+                licenses {
+                    license {
+                        name = "MIT"
+                        url = "https://opensource.org/licenses/MIT"
+                        distribution = "repo"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "ajeetd"
+                        name = "Ajeet Dhaliwal"
+                        email = "help@tesults.com"
+                    }
+                }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
-
-// Create the pom configuration:
-def pomConfig = {
-    licenses {
-        license {
-            name "MIT"
-            url "https://opensource.org/licenses/MIT"
-            distribution "repo"
+                scm {
+                    url = "https://github.com/tesults/testng.git"
+                }
+            }
         }
     }
-    developers {
-        developer {
-            id "ajeetd"
-            name "Ajeet Dhaliwal"
-            email "help@tesults.com"
-        }
-    }
-
-    scm {
-        url "https://github.com/tesults/testng.git"
-    }
 }
 
-allprojects {
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked"
-        }
+signing {
+    sign publishing.publications.mavenJava
+}
+
+javadoc {
+    if(JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
     }
 }
