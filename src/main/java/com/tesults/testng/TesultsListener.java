@@ -223,7 +223,6 @@ public class TesultsListener extends TestListenerAdapter {
 
         // Upload
         System.out.println("Tesults results uploading...");
-        System.out.println(data);
         Map<String, Object> response = Results.upload(data);
         System.out.println("success: " + response.get("success"));
         System.out.println("message: " + response.get("message"));
