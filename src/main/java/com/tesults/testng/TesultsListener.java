@@ -8,21 +8,31 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.util.*;
 
 import com.tesults.tesults.*;
 
 public class TesultsListener extends TestListenerAdapter {
+
+    private static class CustomField {
+        public String key;
+        public String value;
+    }
+
     // A list to hold your test cases.
     List<Map<String,Object>> cases = new ArrayList<Map<String, Object>>();
+
+    static Map<String, List<String>> files = new HashMap<String, List<String>>();
+    static Map<String, List<CustomField>> customFields = new HashMap<String, List<CustomField>>();
 
     Boolean disabled = false;
 
     // Options
     String config = System.getProperty("tesultsConfig");
     String target = System.getProperty("tesultsTarget");
-    String files = System.getProperty("tesultsFiles");
+    String filesDir = System.getProperty("tesultsFiles");
     Boolean nosuites = System.getProperty("tesultsNoSuites") == null ? false : true;
     String buildName = System.getProperty("tesultsBuildName");
     String buildDesc = System.getProperty("tesultsBuildDesc");
@@ -30,13 +40,13 @@ public class TesultsListener extends TestListenerAdapter {
     String buildReason = System.getProperty("tesultsBuildReason");
 
     private List<String> filesForCase(String suite, String name) {
-        if (files == null) {
+        if (filesDir == null) {
             return null;
         }
         List<String> caseFiles = new ArrayList<String>();
-        String pathString = Paths.get(files, name).toString();
+        String pathString = Paths.get(filesDir, name).toString();
         if (!suite.equals("") && suite != null) {
-            pathString = Paths.get(this.files, suite, name).toString();
+            pathString = Paths.get(this.filesDir, suite, name).toString();
         }
         File path = new File(pathString);
         try {
@@ -59,6 +69,7 @@ public class TesultsListener extends TestListenerAdapter {
     private Map<String, Object> createTestCase (ITestResult iTestResult) {
         Map<String, Object> testCase = new HashMap<String, Object>();
         String suite = iTestResult.getInstanceName();
+        String className = iTestResult.getInstanceName();
         String name = iTestResult.getName();
         //testCase.put("name", getTestMethodName(iTestResult));
         testCase.put("name", name);
@@ -66,6 +77,7 @@ public class TesultsListener extends TestListenerAdapter {
             testCase.put("suite", suite);
         } else {
             suite = null;
+            testCase.put("_Class", className);
         }
         String desc = iTestResult.getMethod().getDescription();
         if (desc != null) {
@@ -81,14 +93,39 @@ public class TesultsListener extends TestListenerAdapter {
                 testCase.put("params", parameters);
             }
         }*/
-        List<String> files = filesForCase(suite == null ? "" : suite, name);
-        if (files != null) {
-            if (files.size() > 0) {
-                testCase.put("files", files);
-            }
-        }
+
         testCase.put("start", iTestResult.getStartMillis());
         testCase.put("end", iTestResult.getEndMillis());
+
+        // Files:
+        List<String> testFiles = filesForCase(suite == null ? "" : suite, name);
+        if (testFiles != null) {
+            if (testFiles.size() > 0) {
+                testCase.put("files", testFiles);
+            }
+        }
+
+        // Enhanced reporting files:
+        String key = keyForTestSuiteAndName(nosuites == true ? className : suite, name);
+        List<String> paths = files.get(key);
+        if (paths != null) {
+            List<String> existingPaths = (List<String>) testCase.get("files");
+            if (existingPaths != null) {
+                for (String path: existingPaths) {
+                    paths.add(path);
+                }
+            }
+            testCase.put("files", paths);
+        }
+
+        // Enhanced reporting custom fields:
+        List<CustomField> existingCustomFields = customFields.get(key);
+        if (existingCustomFields != null) {
+            for (CustomField customField: existingCustomFields) {
+                testCase.put("_" + customField.key, customField.value);
+            }
+        }
+
         return testCase;
     }
 
@@ -160,8 +197,8 @@ public class TesultsListener extends TestListenerAdapter {
                         System.out.println("Invalid target value in configuration file");
                     }
                 }
-                if (files == null) {
-                    files = props.getProperty("tesultsFiles", null);
+                if (filesDir == null) {
+                    filesDir = props.getProperty("tesultsFiles", null);
                 }
                 if (nosuites == false) {
                     String nosuitesConfig = props.getProperty("tesultsNoSuites", null);
@@ -259,5 +296,45 @@ public class TesultsListener extends TestListenerAdapter {
         Map<String, Object> testCase = createTestCase(iTestResult);
         testCase.put("result", "unknown");
         cases.add(testCase);
+    }
+
+    // Enhanced reporting
+
+    private static String keyForTestSuiteAndName (String suite, String name) {
+        return suite + "-" + name;
+    }
+    public static void file (Method method, String path) {
+        try {
+            String suite = method.getDeclaringClass().getName();
+            String name = method.getName();
+            String key = keyForTestSuiteAndName(suite, name);
+            List<String> paths = files.get(key);
+            if (paths == null) {
+                paths = new ArrayList<String>();
+            }
+            paths.add(path);
+            files.put(key, paths);
+        } catch (Exception ex) {
+
+        }
+    }
+
+    public static void custom (Method method, String name, String value) {
+        try {
+            String suite = method.getDeclaringClass().getName();
+            String testName = method.getName();
+            String key = keyForTestSuiteAndName(suite, testName);
+            List<CustomField> existingCustomFields = customFields.get(key);
+            if (existingCustomFields == null) {
+                existingCustomFields = new ArrayList<CustomField>();
+            }
+            CustomField newCustomField = new CustomField();
+            newCustomField.key = name;
+            newCustomField.value = value;
+            existingCustomFields.add(newCustomField);
+            customFields.put(key, existingCustomFields);
+        } catch (Exception ex) {
+
+        }
     }
 }
