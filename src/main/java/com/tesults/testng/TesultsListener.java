@@ -26,7 +26,7 @@ public class TesultsListener extends TestListenerAdapter {
 
     static Map<String, List<String>> files = new HashMap<String, List<String>>();
     static Map<String, List<CustomField>> customFields = new HashMap<String, List<CustomField>>();
-
+    static Map<String, List<Map<String, Object>>> steps = new HashMap<String, List<Map<String, Object>>>();
     Boolean disabled = false;
 
     // Options
@@ -124,6 +124,13 @@ public class TesultsListener extends TestListenerAdapter {
             for (CustomField customField: existingCustomFields) {
                 testCase.put("_" + customField.key, customField.value);
             }
+        }
+
+        // Enhanced reporting steps:
+
+        List<Map<String, Object>> stepList = steps.get(key);
+        if (stepList != null) {
+            testCase.put("steps", stepList);
         }
 
         return testCase;
@@ -333,6 +340,22 @@ public class TesultsListener extends TestListenerAdapter {
             newCustomField.value = value;
             existingCustomFields.add(newCustomField);
             customFields.put(key, existingCustomFields);
+        } catch (Exception ex) {
+
+        }
+    }
+
+    public static void step (Method method, Map<String, Object> step) {
+        try {
+            String suite = method.getDeclaringClass().getName();
+            String name = method.getName();
+            String key = keyForTestSuiteAndName(suite, name);
+            List<Map<String, Object>> stepsList = steps.get(key);
+            if (stepsList == null) {
+                stepsList = new ArrayList<Map<String, Object>>();
+            }
+            stepsList.add(step);
+            steps.put(key, stepsList);
         } catch (Exception ex) {
 
         }
